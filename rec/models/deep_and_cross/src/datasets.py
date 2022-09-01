@@ -253,12 +253,10 @@ def _get_mindrecord_dataset(directory, train_mode=True, epochs=10, batch_size=16
     Returns:
         Dataset.
     """
-    file_prefix_name = 'train_input_part.mindrecord' if train_mode else 'test_input_part.mindrecord'
-    file_suffix_name = '00' if train_mode else '0'
 
-    file_list = glob.glob(os.path.join(directory, "train_*[!.db"))
+    file_list = glob.glob(os.path.join(directory, "train_*[!.db]"))
     if not train_mode:
-        file_list = glob.glob(os.path.join(directory, "test_*[!.db"))
+        file_list = glob.glob(os.path.join(directory, "test_*[!.db]"))
 
     shuffle = train_mode
 
