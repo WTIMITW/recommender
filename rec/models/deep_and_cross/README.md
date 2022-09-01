@@ -9,18 +9,11 @@
 - [环境要求](#环境要求)
 - [快速入门](#快速入门)
 - [脚本说明](#脚本说明)
-  - [脚本及样例代码](#脚本及样例代码)
-  - [脚本参数](#脚本参数)
-  - [训练过程](#训练过程)
-    - [训练](#训练)
-    - [分布式训练](#分布式训练)
-  - [评估过程](#评估过程)
-    - [评估](#评估)
-- [模型描述](#模型描述)
-  - [性能](#性能)
-    - [评估性能](#评估性能)
-      - [CRITEO数据集](#criteo数据集)
-- [ModelZoo主页](#modelzoo主页)
+    - [脚本及样例代码](#脚本及样例代码)
+    - [脚本参数](#脚本参数)
+    - [训练过程](#训练过程)
+        - [训练](#训练)
+        - [分布式训练](#分布式训练)
 
 <!-- /TOC -->
 
@@ -36,7 +29,7 @@ DCN模型最开始是Embedding and stacking layer，然后是并行的Cross Netw
 
 # 数据集
 
-使用的数据集：[1] Guo H 、Tang R和Ye Y等人使用的数据集。 DeepFM: A Factorization-Machine based Neural Network for CTR Prediction[J].2017.
+使用的数据集：criteo 1tb click logs
 
 # 环境要求
 
@@ -52,24 +45,26 @@ DCN模型最开始是Embedding and stacking layer，然后是并行的Cross Netw
 1. 克隆代码。
 
 ```bash
-git clone https://gitee.com/mindspore/mindspore.git
-cd mindspore/model_zoo/official/recommend/deep_and_cross
+git clone https://gitee.com/mindspore/recommender.git
+cd recommender/rec/models/deep_and_cross
 ```
 
 2. 下载数据集。
 
-  > 请参考[1]获得下载链接。
+  > 请参考recommender/datasets/criteo_1tb。
 
 ```bash
-mkdir -p data/origin_data && cd data/origin_data
-wget DATA_LINK
-tar -zxvf dac.tar.gz
+sh download.sh 1
 ```
 
-3. 使用此脚本预处理数据。处理过程可能需要一小时，生成的MindRecord数据存放在data/mindrecord路径下。
+3. 使用此脚本预处理数据。
+
+  > 请参考recommender/datasets/criteo_1tb。
+
+处理过程可能需要30min，生成的MindRecord数据存放在~/mindspore/rec/criteo_1tb_data/mindrecord路径下。
 
 ```bash
-python src/preprocess_data.py  --data_path=./data/ --dense_dim=13 --slot_dim=26 --threshold=100 --train_line_count=45840617 --skip_id_convert=0
+process_data.py --data_path=~/mindspore/rec/criteo_1tb_data --part_num=1
 ```
 
 4. 开始训练。
@@ -80,16 +75,16 @@ GPU单卡训练命令如下：
 
 ```bash
 #单卡训练示例
-python train.py --device_target="GPU" > output.train.log 2>&1 &
+python train.py --device_target="GPU"  --data_path="~/mindspore/rec/criteo_1tb_data/mindrecord" > output.train.log 2>&1 &
 #或
-bash scripts/run_train_gpu.sh
+bash scripts/run_train_gpu.sh "~/mindspore/rec/criteo_1tb_data/mindrecord"
 ```
 
 GPU 8卡训练命令如下：
 
 ```bash
 #8卡训练示例
-bash scripts/run_train_multi_gpu.sh
+bash scripts/run_train_multi_gpu.sh "~/mindspore/rec/criteo_1tb_data/mindrecord"
 ```
 
 5. 开始验证。
@@ -107,27 +102,29 @@ bash scripts/run_eval.sh CHECKPOINT_PATH
 ## 脚本及样例代码
 
 ```bash
-├── deep_and_cross
-    ├── README.md                    // deep and cross相关说明
-    ├── scripts
-    │   ├──run_train_gpu.sh         // GPU处理器单卡训练shell脚本
-    │   ├──run_train_multi_gpu.sh   // GPU处理器8卡训练shell脚本
-    │   ├──run_eval.sh              // 评估的shell脚本
-    ├── src
-    │   ├──dataset.py             // 创建数据集
-    │   ├──deepandcross.py          //  deepandcross架构
-    │   ├──callback.py            //  定义回调
-    │   ├──config.py            // 参数配置
-    │   ├──metrics.py            // 定义AUC
-    ├── train.py               // 训练脚本
-    ├── eval.py               // 评估脚本
+├── model_zoo
+    ├── README.md                           // 所有模型相关说明
+    ├── deep_and_cross
+        ├── README.md                       // deep and cross相关说明
+        ├── scripts
+        │   ├──run_train_gpu.sh             // GPU处理器单卡训练shell脚本
+        │   ├──run_train_multi_gpu.sh       // GPU处理器8卡训练shell脚本
+        │   ├──run_eval.sh                  // 评估的shell脚本
+        ├── src
+        │   ├──dataset.py                   // 创建数据集
+        │   ├──deepandcross.py              // deepandcross架构
+        │   ├──callback.py                  // 定义回调
+        │   ├──config.py                    // 参数配置
+        │   ├──metrics.py                   // 定义AUC
+        │   ├──preprocess_data.py           // 预处理数据，生成mindrecord文件
+        ├── train.py                        // 训练脚本
+        ├── eval.py                         // 评估脚本
 ```
 
 ## 脚本参数
 
 在config.py中可以同时配置训练参数和评估参数。
 
-- 配置GoogleNet和CIFAR-10数据集。
 
   ```python
   self.device_target = "GPU"                     #设备选择
@@ -169,53 +166,3 @@ bash scripts/run_eval.sh CHECKPOINT_PATH
   ```
 
   上述shell脚本将在后台运行分布训练。您可以通过output.multi_gpu.train.log文件查看结果。
-
-## 评估过程
-
-### 评估
-
-- 在GPU处理器环境运行时评估CIFAR-10数据集
-
-  在运行以下命令之前，请检查用于评估的检查点路径。请将检查点路径设置为相对路径，例如“./checkpoints/deep_and_cross-10_2582.ckpt”。
-
-  ```bash
-  python eval.py --ckpt_path=[CHECKPOINT_PATH] > eval.log 2>&1 &
-  ```
-
-  上述python命令将在后台运行，您可以通过eval.log文件查看结果。
-
-  或者，
-
-  ```bash
-  bash scripts/run_eval.sh [CHECKPOINT_PATH]
-  ```
-
-  上述python命令将在后台运行，您可以通过output.eval.log文件查看结果。
-
-# 模型描述
-
-## 性能
-
-### 评估性能
-
-#### CRITEO数据集
-
-| 参数          | GPU单卡                                             |
-| ------------- | --------------------------------------------------- |
-| 资源          | NV Tesla V100-32G                                   |
-| 上传日期      | 2021-06-30                                          |
-| MindSpore版本 | 1.2.0                                               |
-| 数据集        | CRITEO                                              |
-| 训练参数      | epoch=10, steps=2582, batch_size = 16000, lr=0.0001 |
-| 优化器        | Adam                                                |
-| 损失函数      | Sigmoid交叉熵                                       |
-| 输出          | 概率                                                |
-| 损失          | 0.4388                                              |
-| 速度          | 107-110毫秒/步                                      |
-| 总时长        | 约2800秒                                            |
-| 微调检查点    | 75M (.ckpt文件)                                     |
-| 推理AUC       | 0.803786                                            |
-
-# ModelZoo主页  
-
- 请浏览官网[主页](https://gitee.com/mindspore/models)。
