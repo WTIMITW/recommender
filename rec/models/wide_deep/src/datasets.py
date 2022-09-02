@@ -250,9 +250,11 @@ def _get_mindrecord_dataset(directory, train_mode=True, batch_size=1000,
         Dataset.
     """
     shuffle = train_mode
-    file_list = glob.glob(os.path.join(directory, "train_*[!.db]"))
+    file_list = glob.glob(os.path.join(directory, "train_*.mindrecord"))
+    file_list += glob.glob(os.path.join(directory, "train_*[!.db]"))
     if not train_mode:
-        file_list = glob.glob(os.path.join(directory, "test_*[!.db]"))
+        file_list = glob.glob(os.path.join(directory, "test_*.mindrecord"))
+        file_list += glob.glob(os.path.join(directory, "test_*[!.db]"))
 
     if rank_size is not None and rank_id is not None:
         data_set = ds.MindDataset(file_list,
