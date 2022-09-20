@@ -34,7 +34,7 @@ Wide&Deep模型训练了宽线性模型和深度学习神经网络，结合了�
 
 ```bash
 git clone https://gitee.com/mindspore/recommender.git
-cd rec/models/wide_deep
+cd recommender/models/wide_deep
 ```
 
 目录结构如下：

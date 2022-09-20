@@ -7,30 +7,52 @@ recommender仓旨在提供主流推荐网络模型高效训练的解决方案及
 ### 仓库结构 
 
 ```bash
-
 └── recommender
     ├── benchmarks            // 推荐网络训练性能benchmarks
     ├── datasets              // 数据集下载与转换工具
-    │   └── criteo_1tb
-    └── rec                   // 典型推荐网络模型端到端训练指导
-        └── models
+    ├── mindspore_rec         // 推荐网络训练相关API
+    │   └── train
+    ├── models                // 典型推荐网络模型端到端训练指导
+    │   ├── deep_and_cross
+    │   └── wide_deep
+    ├── README.md
+    ├── build.sh
+    └── setup.py
 ```
 
 ### 模型库
 
-模型逐步迁移中，目前[models](rec/models)目录包含Wide&Deep、Deep&Cross Network(DCN)模型的端到端训练流程使用指导。
+模型逐步迁移中，目前[models](models)目录包含Wide&Deep、Deep&Cross Network(DCN)模型的端到端训练流程使用指导，直接下载recommender源码即可使用，无需编译构建。训练不同模型会有少量的Python依赖包需要安装，详见各个模型目录中的requirements.txt
 
 
-### 使用说明
+### 安装说明
 
-recommender无需编译安装，只需将代码clone到本地，训练不同模型会有少量的Python依赖包需要安装，详见各个模型目录中的requirements.txt
+如果需要使用在线训练能力，需要构建安装recommender。
 
-**克隆代码**
+**1.克隆代码**
 
 ```bash
 git clone https://gitee.com/mindspore/recommender.git
 cd recommender
 ```
+
+**2.构建安装**
+
+```bash
+bash build.sh
+pip install build/mindspore_rec-{recommender_version}-py3-none-any.whl
+```
+
+**使用样例**
+
+```bash
+from mindspore_rec import RecModel as Model
+#model定义同mindspore.model
+...
+model.online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True)
+...
+```
+
 
 ### 社区
 #### 治理
