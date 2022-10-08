@@ -20,6 +20,7 @@ from mindspore import context
 from mindspore.parallel._utils import _device_number_check
 from mindspore._checkparam import Validator
 from mindspore.train.callback import _InternalCallbackParam, RunContext, _CallbackManager
+from mindspore import log as logger
 
 class RecModel(Model):
     """
@@ -85,7 +86,7 @@ class RecModel(Model):
                                        boost_level=boost_level)
 
 
-    def online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True):
+    def online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True, sink_size=1):
         """
         Online training API for recommend model.
         Note:
@@ -114,6 +115,7 @@ class RecModel(Model):
             dataset_sink_mode (bool): Determines whether to pass the data through dataset channel.
                                       Configure device target of CPU, the training process will be performed with
                                       dataset not sink. Default: True.
+            sink_size (int): Controls how many batches of data in each sink. Default: 1
         """
         Validator.check_bool(dataset_sink_mode)
         if isinstance(self._train_network, nn.GraphCell) and dataset_sink_mode:
@@ -130,9 +132,9 @@ class RecModel(Model):
         cb_params = _InternalCallbackParam()
         cb_params.train_network = self._train_network
         if dataset_sink_mode:
-            cb_params.batch_num = 1
+            cb_params.batch_num = sink_size
         else:
-            cb_params.batch_num = sys.maxsize
+            cb_params.batch_num = train_dataset.get_dataset_size()
 
         with _CallbackManager(callbacks) as list_callback:
             self._check_reuse_dataset(train_dataset)
@@ -143,7 +145,7 @@ class RecModel(Model):
                             "so the training process will be performed with dataset not sink.")
                 self._online_train_dataset_not_sink(train_dataset, list_callback, cb_params)
             else:
-                self._online_train_dataset_sink(train_dataset, list_callback, cb_params)
+                self._online_train_dataset_sink(train_dataset, list_callback, cb_params, sink_size)
 
 
     def _online_train_dataset_not_sink(self, train_dataset, callbacks=None, cb_params=None):
@@ -164,31 +166,44 @@ class RecModel(Model):
                                                   dataset_sink_mode=False,
                                                   epoch_num=-1)
 
-        cb_params.cur_epoch_num = 1
+        cb_params.cur_epoch_num = 0
         cb_params.cur_step_num = 0
         cb_params.dataset_sink_mode = False
         run_context = RunContext(cb_params)
+        callbacks.on_train_begin(run_context)
 
-        # Step iteration
-        for next_element in dataset_helper:
-            cb_params.cur_step_num += 1
-            #Callback begin
-            callbacks.on_train_step_begin(run_context)
-            self._check_network_mode(self._train_network, True)
-            outputs = self._train_network(*next_element)
-            cb_params.net_outputs = outputs
+        max_epoch = sys.maxsize
+        # Epoch iteration
+        for epoch_iter in range(max_epoch):
+            cb_params.cur_epoch_num = epoch_iter + 1
+            # Epoch callback begin
+            callbacks.on_train_epoch_begin(run_context)
 
-            # Handle loss scale.
-            if self._loss_scale_manager and self._loss_scale_manager.get_drop_overflow_update():
-                _, overflow, _ = outputs
-                overflow = np.all(overflow.asnumpy())
-                self._loss_scale_manager.update_loss_scale(overflow)
+            # Step iteration
+            for next_element in dataset_helper:
+                cb_params.cur_step_num += 1
+                # Step callback begin
+                callbacks.on_train_step_begin(run_context)
+                self._check_network_mode(self._train_network, True)
+                outputs = self._train_network(*next_element)
+                cb_params.net_outputs = outputs
 
-            #Callback end
-            callbacks.on_train_step_end(run_context)
+                # Handle loss scale.
+                if self._loss_scale_manager and self._loss_scale_manager.get_drop_overflow_update():
+                    _, overflow, _ = outputs
+                    overflow = np.all(overflow.asnumpy())
+                    self._loss_scale_manager.update_loss_scale(overflow)
 
+                # Step callback end
+                callbacks.on_train_step_end(run_context)
 
-    def _online_train_dataset_sink(self, train_dataset, callbacks=None, cb_params=None):
+            train_dataset.reset()
+            # Epoch callback end
+            callbacks.on_train_epoch_end(run_context)
+
+        callbacks.on_train_end(run_context)
+
+    def _online_train_dataset_sink(self, train_dataset, callbacks=None, cb_params=None, sink_size=1):
         """
         Training process for data sink mode. The data would be passed to network through dataset channel.
 
@@ -200,7 +215,11 @@ class RecModel(Model):
                                      function respectively.
             callbacks (Callback): Executor of callback list. Default: None.
             cb_params (_InternalCallbackParam): Callback parameters. Default: None.
+            sink_size (int): Controls how many batches of data in each sink. Default: 1
         """
+        sink_size = Validator.check_positive_int(sink_size)
+        if sink_size != 1:
+            raise ValueError(f"The sink_size parameter only support value of 1 currently, but got: {sink_size}")
 
         cb_params.cur_step_num = 0
         cb_params.dataset_sink_mode = True
@@ -220,14 +239,14 @@ class RecModel(Model):
             dataset_helper, train_network = self._exec_preprocess(is_train=True,
                                                                   dataset=train_dataset,
                                                                   dataset_sink_mode=True,
-                                                                  sink_size=1,
+                                                                  sink_size=sink_size,
                                                                   epoch_num=-1,
                                                                   dataset_helper=dataset_helper)
             cb_params.train_network = train_network
 
             # Train sink_size batchs once.
             for inputs in dataset_helper:
-                cb_params.cur_step_num += 1
+                cb_params.cur_step_num += sink_size
                 callbacks.on_train_step_begin(run_context)
                 train_network = self._check_network_mode(train_network, True)
                 outputs = train_network(*inputs)
