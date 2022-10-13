@@ -121,6 +121,14 @@ class StatsDict():
         logging.info("val_max_dict.items():{}".format(list(self.val_max_dict.items())))
         logging.info("cat2id_dict len:{}".format(len(self.cat2id_dict)))
 
+        with open(os.path.join(dict_path, "all_val_max_dict.pkl"), "wb") as file_wrt:
+            pickle.dump(self.val_max_dict, file_wrt)
+        with open(os.path.join(dict_path, "all_val_min_dict.pkl"), "wb") as file_wrt:
+            pickle.dump(self.val_min_dict, file_wrt)
+        with open(os.path.join(dict_path, "cat2id_dict.pkl"), "wb") as file_wrt:
+            pickle.dump(self.cat2id_dict, file_wrt)
+
+
     def map_cat2id(self, values, cats):
         """Cat to id"""
         def minmax_scale_value(i, val):
