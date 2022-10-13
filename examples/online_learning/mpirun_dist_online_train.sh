@@ -14,10 +14,11 @@
 # limitations under the License.
 # ============================================================================
 
-# bash run_multigpu_train.sh RANK_SIZE
+# bash mpirun_dist_online_train.sh RANK_SIZE LOCAL_HOST_IP
 self_path=$(cd "$(dirname "$0")" || exit; pwd)
 RANK_SIZE=$1
+LOCAL_HOST_IP=$2
 
 mpirun --allow-run-as-root -n $RANK_SIZE --output-filename log_output --merge-stderr-to-stdout \
-    python -s ${self_path}/dist_online_train.py --address=127.0.0.1 \
+    python -s ${self_path}/dist_online_train.py --address=$LOCAL_HOST_IP  \
     --device_target="GPU"  > log.txt 2>&1 &
