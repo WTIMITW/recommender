@@ -92,8 +92,8 @@ if __name__ == '__main__':
     callback = LossCallBack(config=config) 
 
     # Ckpt
-    ckptconfig = CheckpointConfig(save_checkpoint_steps=10, keep_checkpoint_max=5)
-    ckpoint_cb = ModelCheckpoint(prefix='widedeep_train', directory="./ckpt", config=ckptconfig)
+    ckptconfig = CheckpointConfig(save_checkpoint_steps=100, keep_checkpoint_max=5)
+    ckpoint_cb = ModelCheckpoint(prefix='widedeep_train', directory="./ckpt"+str(get_rank()), config=ckptconfig)
 
     # Start train
     model.online_train(dataset, callbacks=[TimeMonitor(1), callback, ckpoint_cb], dataset_sink_mode=True)

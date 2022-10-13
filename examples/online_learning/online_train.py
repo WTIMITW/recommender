@@ -80,7 +80,7 @@ if __name__ == '__main__':
     callback = LossCallBack(config=config) 
 
     # Ckpt
-    ckptconfig = CheckpointConfig(save_checkpoint_steps=10, keep_checkpoint_max=5)
+    ckptconfig = CheckpointConfig(save_checkpoint_steps=100, keep_checkpoint_max=5)
     ckpoint_cb = ModelCheckpoint(prefix='widedeep_train', directory="./ckpt", config=ckptconfig)
 
     # Start train
