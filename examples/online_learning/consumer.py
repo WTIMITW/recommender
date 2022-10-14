@@ -42,6 +42,7 @@ def parse_args():
     parser.add_argument("--dataset_name", type=str, default='criteo')
     parser.add_argument("--namespace", type=str, default='demo')
     parser.add_argument("--num_shards", type=int, default=1)
+    parser.add_argument("--window_size", type=int, default=1000)
 
     args = parser.parse_args()
     return args
@@ -56,7 +57,7 @@ if __name__ == '__main__':
                         dataset_name=args.dataset_name,
                         namespace=args.namespace,
                         num_shards=args.num_shards)
-    myTopic = [('python_test1', 0), ('python_test_1', 1)]
+    myTopic = [('python_test1', 0), ('python_test1', 1)]
     myGroup = "test"
     deserializer = lambda v: json.loads(v.decode('utf-8'))
     print("initialization done")
@@ -68,7 +69,7 @@ if __name__ == '__main__':
                          value_deserializer=deserializer,
                          group_id=myGroup,
                          api_version=(0, 10, 2),
-                         count=1000):
+                         count=args.window_size):
         features = df.iloc[:, 1:40]
         feat_id = features.apply(get_id, axis=1)
         feat_weight = features.apply(get_weight, axis=1)
