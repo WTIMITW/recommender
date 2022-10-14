@@ -77,9 +77,28 @@ kafka-python v2.0.2
 
 下面以Criteo数据集训练Wide&Deep为例，介绍一下整个online learning流程，样例代码位于[examples/online_learning](../../examples/online_learning)
 
-1. 启动kafka
+1. 下载Kafka
+wget https://archive.apache.org/dist/kafka/3.2.0/kafka_2.13-3.2.0.tgz
 
-2. 启动分布式计算引擎
+tar -xzf kafka_2.13-3.2.0.tar.gz
+
+cd kafka_2.13-3.2.0
+
+如需安装其他版本，请参照https://archive.apache.org/dist/kafka/
+
+2. 启动kafka-zookeeper
+
+bin/zookeeper-server-start.sh config/zookeeper.properties
+
+3. 启动kafka-server
+打开另一个命令终端，启动kafka服务
+bin/kafka-server-start.sh config/server.properties
+
+4. 启动kafka_client
+python kafka_client.py
+kafka_client只需要启动一次，可以使用kafka设置topic对应的partition数量
+
+5. 启动分布式计算引擎
 
    ```bash
    yrctl start --master  --address $MASTER_HOST_IP  
@@ -89,26 +108,37 @@ kafka-python v2.0.2
    --address： master节点的ip
    ```
 
-3. 启动数据producer
+6. 启动数据producer
 
    producer 用于模拟在线训练场景，将本地的criteo数据集写入到kafka，供consumer使用
+   
+   当前样例使用多进程读取两个文件，并将数据写入kafka
 
    ```bash
    python producer.py
+   参数说明
+   --file1： 文件1路径
+   --file2： 文件2路径
    ```
 
-4. consumer
+8. consumer
 
    ```bash
    python consumer.py  --num_shards=$DEVICE_NUM  --address=$LOCAL_HOST_IP  --max_dict=$PATH_TO_VAL_MAX_DICT  --min_dict=$PATH_TO_CAT_TO_ID_DICT  --map_dict=$PATH_TO_VAL_MAP_DICT
    
    #参数说明
-   --num_shards：对应训练侧的device 卡数，单卡训练则设置为1，8卡训练设置为8
+   --num_shards： 对应训练侧的device 卡数，单卡训练则设置为1，8卡训练设置为8
+   --address： 当前sender的地址
+   --dataset_name： 数据集名称
+   --namespace： channel名称
+   --max_dict： 稠密特征列的最大值字典
+   --min_dict： 稠密特征列的最小值字典
+   --map_dict： 稀疏特征列的字典
    ```
 
    consumer为criteo数据集进行特征工程需要3个数据集相关文件: `all_val_max_dict.pkl`, `all_val_min_dict.pkl`, `cat2id_dict.pkl`, `$PATH_TO_VAL_MAX_DICT`, `$PATH_TO_CAT_TO_ID_DICT`, `$PATH_TO_VAL_MAP_DICT` 分别为这些文件在环境上的绝对路径。这3个pkl文件具体生产方法可以参考[process_data.py](../../datasets/criteo_1tb/process_data.py)，对原始criteo数据集做转换生产对应的.pkl文件。
 
-5. 启动训练
+9. 启动训练
 
    config采用yaml的形式，见[default_config.yaml](../../examples/online_learning/default_config.yaml)
 
