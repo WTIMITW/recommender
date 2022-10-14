@@ -22,6 +22,33 @@
 
 
 
+#### 新增API
+
+```python
+RecModel.online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True, sink_size=1)
+```
+
+| 参数名称          | 描述                                                                                       | 默认值 |
+| ----------------- | ------------------------------------------------------------------------------------------ | ------ |
+| train_dataset     | (Dataset) 在线训练数据集，包含训练数据和label，该数据集无边界，dataset_size == sys.maxsize | 无     |
+| callbacks         | (Optional[list[Callback], Callback]) 训练过程中执行的callbacks                             | None   |
+| dataset_sink_mode | (bool) 是否开启数据下沉，如果开启，数据将通过dataset channel发送到device queue中           | True   |
+| sink_size         | ( int)控制一次下沉多少个batch的数据                                                        | 1      |
+
+
+使用前先安装mindspore_rec推荐套件，安装方式见[ReadMe](../../README.md)
+
+example：
+```
+from mindspore_rec import RecModel as Model
+#model定义同mindspore.model
+...
+model.online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True)
+
+```
+
+
+
 #### 使用约束
 
 - online learning数据模块依赖MindPandas，MindPandas最低支持Python版本为Python3.8，所以online learning需要使用3.8以上的Python版本，对应于MindSpore及recommender套件都使用Python3.8版本。
