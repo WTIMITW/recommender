@@ -23,9 +23,14 @@ if [ ! -d "${BUILD_PATH}" ]; then
     mkdir ${BUILD_PATH}
 fi
 
-python3 setup.py bdist_wheel -d ${BUILD_PATH}
+python3 setup.py bdist_wheel -d ${BASEPATH}/output
 
-cd ${BUILD_PATH} || exit
+if [ ! -d "${BASEPATH}/output" ]; then
+    echo "The directory ${BASEPATH}/output dose not exist."
+    exit 1
+fi
+
+cd ${BASEPATH}/output || exit
 for package in mindspore_rec-*whl
 do
     [[ -e "${package}" ]] || break
@@ -33,4 +38,4 @@ do
 done
 cd ${BASEPATH} || exit
 
-echo "---------------- Recommender build successfully, the wheel package is located at ./build ----------------"
+echo "---------------- Recommender build successfully, the wheel package is located at ${BASEPATH}/output ----------------"
