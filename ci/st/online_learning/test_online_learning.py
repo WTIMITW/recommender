@@ -91,3 +91,24 @@ def test_online_learning_api_sink_size_not_equal_one():
     with pytest.raises(ValueError) as exc_info:
         model.online_train(dataset, dataset_sink_mode=True, sink_size=100)
     assert "The sink_size parameter only support value of 1" in str(exc_info.value)
+
+
+def test_online_learning_api_data_sink_mode_not_bool():
+    """
+    Feature: test online learning api.
+    Description: enable data sink mode, and sink_size=100.
+    Expectation: raise a ValueError.
+    """
+    context.set_context(mode=context.GRAPH_MODE,  device_target="GPU")
+
+    stream_dataset = StreamingDataset()
+    dataset = ds.GeneratorDataset(stream_dataset, column_names=["id", "weight", "label"])
+    dataset = dataset.batch(100)
+
+    train_net = Net()
+    train_net.set_train()
+    model = Model(train_net)
+
+    with pytest.raises(TypeError) as exc_info:
+        model.online_train(dataset, dataset_sink_mode="valid")
+    assert "The input value must be a bool, but got str" in str(exc_info.value)
