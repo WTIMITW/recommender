@@ -89,6 +89,7 @@ class RecModel(Model):
     def online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True, sink_size=1):
         """
         Online training API for recommend model.
+
         Note:
             If dataset_sink_mode is True, data will be sent to device queue. If the device is Ascend, features
             of data will be transferred one by one. The limitation of data transmission per time is 256M.
