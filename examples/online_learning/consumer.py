@@ -35,9 +35,9 @@ def get_label(x):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Consumer')
-    parser.add_argument("--max_dict", type=str, default='./all_val_max_dict')
-    parser.add_argument("--min_dict", type=str, default='./all_val_min_dict')
-    parser.add_argument("--map_dict", type=str, default='./cat2id_dict')
+    parser.add_argument("--max_dict", type=str, default='./all_val_max_dict.pkl')
+    parser.add_argument("--min_dict", type=str, default='./all_val_min_dict.pkl')
+    parser.add_argument("--map_dict", type=str, default='./cat2id_dict.pkl')
     parser.add_argument("--address", type=str, default='127.0.0.1')
     parser.add_argument("--dataset_name", type=str, default='criteo')
     parser.add_argument("--namespace", type=str, default='demo')
