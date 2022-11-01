@@ -51,7 +51,7 @@ model.online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True)
 
 ## 使用约束
 
-- online learning数据模块依赖MindPandas，MindPandas最低支持Python版本为Python3.8，所以online learning需要使用3.8以上的Python版本，对应于MindSpore及recommender套件都使用Python3.8版本。
+- online learning数据模块依赖MindPandas，MindPandas当前支持Python版本为3.8，所以online learning需要使用3.8版本的Python，对应于MindSpore及recommender套件都使用Python3.8版本。
 
 - 目前支持 GPU后端、静态图模式、Linux平台
 - 暂不支持fullbatch
