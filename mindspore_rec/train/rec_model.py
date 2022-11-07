@@ -80,9 +80,9 @@ class RecModel(Model):
     """
 
     def __init__(self, network, loss_fn=None, optimizer=None, metrics=None, eval_network=None,
-                 eval_indices=None, amp_level="O0", boost_level="O0"):
+                 eval_indexes=None, amp_level="O0", boost_level="O0"):
         super(RecModel, self).__init__(network=network, loss_fn=loss_fn, optimizer=optimizer, metrics=metrics,
-                                       eval_network=eval_network, eval_indexes=eval_indices, amp_level=amp_level,
+                                       eval_network=eval_network, eval_indexes=eval_indexes, amp_level=amp_level,
                                        boost_level=boost_level)
 
 
