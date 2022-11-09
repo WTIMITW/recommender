@@ -22,6 +22,7 @@ dataset_type: "mindrecord"
 parameter_server: 0
 field_slice: False
 sparse: False
+dynamic_embedding: False
 deep_table_slice_mode: "column_slice"
 
 weight_bias_init: ['normal', 'normal']
@@ -50,6 +51,7 @@ dataset_type: "tfrecord/mindrecord/hd5"
 parameter_server: "Open parameter server of not"
 field_slice: "Enable split field mode or not"
 sparse: "Enable sparse or not"
+dynamic_embedding: "Enable dynamic embedding to use hash table."
 deep_table_slice_mode: "column_slice/row_slice"
 emb_dim: "The dense embedding dimension of sparse feature."
 deep_layer_dim: "The dimension of all deep layers."
