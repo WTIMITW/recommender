@@ -1,7 +1,7 @@
 # argparse_init 'WideDeep'
 device_target: Ascend
 data_path: "./data/mindrecord"
-epochs: 5
+epochs: 15
 full_batch: False
 batch_size: 16000
 eval_batch_size: 16000
