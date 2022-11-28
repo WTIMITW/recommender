@@ -14,7 +14,7 @@
 
 ## 整体架构
 
-用户的流式训练数据推送的 kafka 中，MindPandas 从 kafka 读取数据并进行特征工程转换，然后写入分布式计算引擎中，MindData 从分布式计算引擎中读取数据作为训练数据进行训练，MindSpore 进程作为服务常驻，有数据接入就进行训练，并定期导出 ckpt，整体流程见下图1
+用户的流式训练数据推送的 Kafka 中，MindPandas 从 Kafka 读取数据并进行特征工程转换，然后写入分布式计算引擎中，MindData 从分布式计算引擎中读取数据作为训练数据进行训练，MindSpore进程作为服务常驻，有数据接入就进行训练，并定期导出 ckpt，整体流程见下图1。
 
 图1  在线训推一体化 E2E部署视图
 
@@ -28,15 +28,15 @@
 RecModel.online_train(self, train_dataset, callbacks=None, dataset_sink_mode=True, sink_size=1)
 ```
 
-| 参数名称          | 描述                                                                | 默认值 |
-| ----------------- |-------------------------------------------------------------------| ------ |
-| train_dataset     | (Dataset) 在线训练数据集，包含训练数据和label，该数据集无边界，dataset_size == sys.maxsize | 无     |
-| callbacks         | (Optional[list[Callback], Callback]) 训练过程中执行的callbacks            | None   |
-| dataset_sink_mode | (bool) 是否开启数据下沉，如果开启，数据将通过dataset channel发送到device queue中         | True   |
-| sink_size         | ( int)控制一次下沉多少个batch的数据                                           | 1      |
+参数：
+
+-  train_dataset(Dataset) - 在线训练数据集，包含训练数据和label，该数据集无边界，dataset_size == sys.maxsize。默认值：None。
+-  callbacks(Optional[list[Callback], Callback]) - 训练过程中执行的callbacks。默认值：None 。
+-  dataset_sink_mode(bool) - 是否开启数据下沉，如果开启，数据将通过dataset channel发送到device queue中。默认值： True。
+-  sink_size ( int) - 控制一次下沉多少个batch的数据。默认值： 1。
 
 
-使用前先安装mindspore_rec推荐套件，安装方式见[ReadMe](../../README.md)
+使用前先安装mindspore_rec推荐套件，安装方式见[ReadMe](../../README.md)。
 
 example：
 ```
@@ -78,25 +78,38 @@ kafka-python v2.0.2
 下面以Criteo数据集训练Wide&Deep为例，介绍一下整个online learning流程，样例代码位于[examples/online_learning](../../examples/online_learning)
 
 ### 下载Kafka
+```shell
 wget https://archive.apache.org/dist/kafka/3.2.0/kafka_2.13-3.2.0.tgz
-
-tar -xzf kafka_2.13-3.2.0.tar.gz
-
-cd kafka_2.13-3.2.0
+tar -xzf kafka_2.13-3.2.0.tgz
+```
 
 如需安装其他版本，请参照https://archive.apache.org/dist/kafka/
 
 ### 启动kafka-zookeeper
 
+```shell
+cd kafka_2.13-3.2.0
 bin/zookeeper-server-start.sh config/zookeeper.properties
+```
 
 ### 启动kafka-server
 打开另一个命令终端，启动kafka服务
+
+```shell
+cd kafka_2.13-3.2.0
 bin/kafka-server-start.sh config/server.properties
+```
 
 ### 启动kafka_client
+
+进入recommender仓在线学习样例目录，启动kafka_client
+
+```shell
+cd recommender/examples/online_learning
 python kafka_client.py
-kafka_client只需要启动一次，可以使用kafka设置topic对应的partition数量
+```
+
+kafka_client只需要启动一次，可以使用Kafka设置topic对应的partition数量
 
 ### 启动分布式计算引擎
 
@@ -110,41 +123,38 @@ kafka_client只需要启动一次，可以使用kafka设置topic对应的partiti
 
 ### 启动数据producer
 
-   producer 用于模拟在线训练场景，将本地的criteo数据集写入到kafka，供consumer使用
-   
-   当前样例使用多进程读取两个文件，并将数据写入kafka
+   producer 用于模拟在线训练场景，将本地的criteo数据集(数据集下载参考[dataset下载](../../datasets/criteo_1tb/))写入到Kafka，供consumer使用
+
+   当前样例使用多进程读取两个文件，并将数据写入Kafka
 
    ```bash
    python producer.py
    参数说明
    --file1： 文件1路径
    --file2： 文件2路径
+   上述文件均为criteo原始数据集文本文件，file1和file2可以被并发处理，file1和file2可以相同也可以不同，如果相同则每个样本相当于被使用两次。
    ```
 
 ### 启动数据consumer
 
-   consumer既是kafka消费者，同时也是sender，将处理好的df放入MindPandas.channel中，channel详情，请参考
+   consumer既是Kafka消费者，同时也是sender，将处理好的data frame放入MindPandas.channel中，channel详情请参考:[MindPandas](https://gitee.com/mindspore/mindpandas)，
    consumer为criteo数据集进行特征工程需要3个数据集相关文件: `all_val_max_dict.pkl`, `all_val_min_dict.pkl`, `cat2id_dict.pkl`, `$PATH_TO_VAL_MAX_DICT`, `$PATH_TO_CAT_TO_ID_DICT`, `$PATH_TO_VAL_MAP_DICT` 分别为这些文件在环境上的绝对路径。这3个pkl文件具体生产方法可以参考[process_data.py](../../datasets/criteo_1tb/process_data.py)，对原始criteo数据集做转换生产对应的.pkl文件。
 
    ```bash
    python consumer.py  --num_shards=$DEVICE_NUM  --address=$LOCAL_HOST_IP  --max_dict=$PATH_TO_VAL_MAX_DICT  --min_dict=$PATH_TO_CAT_TO_ID_DICT  --map_dict=$PATH_TO_VAL_MAP_DICT
-  ```
-本例特征工程的文件依赖
+   ```
+文件路径参数:
 
-| 参数名称        | 描述          | 默认值 |
-|-------------|-------------|---|
-| max_dict    | 稠密特征列的最大值特征 | 无 |
-| min_dict    | 稠密特征值的最小值特征 | ’default‘ |
-| map_dict    | 稀疏特征列的字典    | True |
+- max_dict - 稠密特征列的最大值特征文件。默认值：'./all_val_max_dict.pkl'。
+- min_dict - 稠密特征值的最小值特征文件。默认值：'./all_val_min_dict.pkl'。
+- max_dict - 稀疏特征列的字典文件。默认值：'./cat2id_dict.pkl'。
 
-MindPandas channel.sender 参数说明
+MindPandas channel.DataSender相关参数：
 
-| 参数名称          | 描述                                                  | 默认值 |
-| ----------------- |-----------------------------------------------------|---|
-| address      | 当前sender运行节点的ip                                     | 无 |
-| name_space   | channel所属的命名空间，不同命名空间的DataSender和DataReceiver不能互连   | ’default‘ |
-| num_shards   | 指定数据的切片数量，对应训练侧的device卡数，单卡则设置为1，8卡设置为8             | True |
-| dataset_name | 数据集名称                                               | ’dataset‘ |
+- num_shards(int)  - 指定数据的切片数量，对应训练侧的device卡数，单卡则设置为1，8卡设置为8。默认值：1。
+- address (str) - 当前sender运行节点的ip。默认值：127.0.0.1。
+- namespace (str) - channel所属的命名空间，不同命名空间的DataSender和DataReceiver不能互连。默认值：  ’demo‘。
+- dataset_name(str) - 数据集名称。默认值：’criteo‘。
 
 #### MindPandas channel.sender使用示例：
 
@@ -162,7 +172,7 @@ MindPandas channel.sender 参数说明
            sender.send(df)
            print("========Data Sender========")
            time.sleep(10)
-  ```
+   ```
 
 ### 启动训练
 ####  训练侧通过MindPandas.channel.receiver读取数据，使用样例如下：
@@ -199,7 +209,7 @@ MindPandas channel.sender 参数说明
    
    #参数说明：
    RANK_SIZE：多卡训练卡数量
-   LOCAL_HOST_IP：本机host ip，用于MindPandas戎接收训练数据
+   LOCAL_HOST_IP：本机host ip，用于MindPandas接收训练数据
    ```
 
 
