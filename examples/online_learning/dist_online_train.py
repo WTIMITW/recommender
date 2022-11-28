@@ -31,19 +31,17 @@ from mindspore.communication.management import get_rank, get_group_size, init
 from mindspore.context import ParallelMode
 
 class StreamingDataset:
-    def __init__(self, object_store):
-        self.data = []
-        self.obj_store = object_store
-        self.recv_data_cnt = 0
+    def __init__(self, receiver):
+        self.data_ = []
+        self.receiver_ = receiver
 
     def __getitem__(self, item):
-        while not self.data:
-            temp_data = self.obj_store.recv()
-            self.recv_data_cnt += 1
-            if temp_data is not None:
-                self.data = temp_data.tolist()
+        while not self.data_:
+            data = self.receiver_.recv()
+            if data is not None:
+                self.data_ = data.tolist()
 
-        last_row = self.data.pop()
+        last_row = self.data_.pop()
         return np.array(last_row[0], dtype=np.int32), np.array(last_row[1], dtype=np.float32), np.array(last_row[2], dtype=np.float32)
 
     def __len__(self):
