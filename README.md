@@ -40,7 +40,7 @@ cd recommender
 
 ```bash
 bash build.sh
-pip install build/mindspore_rec-{recommender_version}-py3-none-any.whl
+pip install output/mindspore_rec-{recommender_version}-py3-none-any.whl
 ```
 
 **使用样例**
