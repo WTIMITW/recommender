@@ -56,12 +56,13 @@ if __name__ == '__main__':
     sender = DataSender(address=args.address,
                         dataset_name=args.dataset_name,
                         namespace=args.namespace,
-                        num_shards=args.num_shards)
+                        num_shards=args.num_shards,
+                        full_batch=False)
     myTopic = [('python_test1', 0), ('python_test1', 1)]
     myGroup = "test"
     deserializer = lambda v: json.loads(v.decode('utf-8'))
     print("initialization done")
-    count = 0
+    count = args.num_shards * args.window_size
     for df in kafka_read(bootstrap_servers='localhost:9092',
                          topic_partitions=myTopic,
                          auto_offset_reset='latest',
@@ -69,8 +70,8 @@ if __name__ == '__main__':
                          value_deserializer=deserializer,
                          group_id=myGroup,
                          api_version=(0, 10, 2),
-                         count=args.window_size):
-        features = df.iloc[:, 1:40]
+                         count=count):
+        features = df.drop(columns=['label'], axis=1)
         feat_id = features.apply(get_id, axis=1)
         feat_weight = features.apply(get_weight, axis=1)
 
