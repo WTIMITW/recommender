@@ -61,7 +61,7 @@ if __name__ == '__main__':
     myTopic = [('python_test1', 0), ('python_test1', 1)]
     myGroup = "test"
     deserializer = lambda v: json.loads(v.decode('utf-8'))
-    print("initialization done")
+    print("Initialization done")
     count = args.num_shards * args.window_size
     for df in kafka_read(bootstrap_servers='localhost:9092',
                          topic_partitions=myTopic,

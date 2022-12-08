@@ -1,7 +1,6 @@
 import mindpandas as pd
 from kafka import KafkaConsumer
 from kafka.structs import TopicPartition
-import numpy as np
 
 def kafka_read(bootstrap_servers, topic_partitions, auto_offset_reset='latest', key_deserializer=None, value_deserializer=None, group_id='', api_version=(0, 10, 2), count=10):
     if isinstance(topic_partitions, str):
@@ -30,16 +29,13 @@ def kafka_read(bootstrap_servers, topic_partitions, auto_offset_reset='latest', 
     try:
         iter = 0
         news = []
-        col = []
         for msg in consumer:
             iter += 1
             news.append(msg.value)
             if iter >= count:
-                ret = np.array(news)
-                df = pd.DataFrame(ret, columns=msg.key)
+                df = pd.DataFrame(news, columns=msg.key)
                 yield df
                 news = []
                 iter = 0
-                col = []
     except KeyboardInterrupt:
         raise Exception("Aborted by user...")
