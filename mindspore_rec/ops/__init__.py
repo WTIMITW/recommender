@@ -13,7 +13,6 @@
 # limitations under the License.
 # ============================================================================
 
-from mindspore_rec.train import RecModel
-from mindspore_rec.ops import HashEmbeddingLookup
+from mindspore_rec.ops.embedding import HashEmbeddingLookup
 
-__all__ = ["RecModel", "HashEmbeddingLookup"]
+__all__ = ["HashEmbeddingLookup"]
