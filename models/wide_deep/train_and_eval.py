@@ -24,15 +24,15 @@ from src.metrics import AUCMetric
 from src.model_utils.config import config as cfg
 
 
-def get_WideDeep_net(config):
+def get_wide_deep_net(config):
     """
     Get network of wide&deep model.
     """
-    WideDeep_net = WideDeepModel(config)
+    wide_deep_net = WideDeepModel(config)
 
-    loss_net = NetWithLossClass(WideDeep_net, config)
-    train_net = TrainStepWrap(loss_net, sparse=config.sparse)
-    eval_net = PredictWithSigmoid(WideDeep_net)
+    loss_net = NetWithLossClass(wide_deep_net, config)
+    train_net = TrainStepWrap(loss_net, sparse=config.sparse, dynamic_embedding=config.dynamic_embedding)
+    eval_net = PredictWithSigmoid(wide_deep_net)
 
     return train_net, eval_net
 
@@ -57,7 +57,7 @@ class ModelBuilder():
         return hooks
 
     def get_net(self, config):
-        return get_WideDeep_net(config)
+        return get_wide_deep_net(config)
 
 
 def test_train_eval(config):
@@ -97,7 +97,7 @@ def test_train_eval(config):
 
     model.train(epochs, ds_train,
                 callbacks=[TimeMonitor(ds_train.get_dataset_size()), eval_callback, callback, ckpoint_cb],
-                dataset_sink_mode=(not sparse))
+                dataset_sink_mode=True)
 
 
 def train_wide_and_deep():

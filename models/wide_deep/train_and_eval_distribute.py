@@ -30,14 +30,14 @@ from src.model_utils.config import config as cfg
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def get_WideDeep_net(config):
+def get_wide_deep_net(config):
     """
     Get network of wide&deep model.
     """
-    WideDeep_net = WideDeepModel(config)
-    loss_net = NetWithLossClass(WideDeep_net, config)
-    train_net = TrainStepWrap(loss_net, sparse=config.sparse)
-    eval_net = PredictWithSigmoid(WideDeep_net)
+    wide_deep_net = WideDeepModel(config)
+    loss_net = NetWithLossClass(wide_deep_net, config)
+    train_net = TrainStepWrap(loss_net, sparse=config.sparse, dynamic_embedding=config.dynamic_embedding)
+    eval_net = PredictWithSigmoid(wide_deep_net)
     return train_net, eval_net
 
 
@@ -60,7 +60,7 @@ class ModelBuilder():
         return hooks
 
     def get_net(self, config):
-        return get_WideDeep_net(config)
+        return get_wide_deep_net(config)
 
 
 def train_and_eval(config):

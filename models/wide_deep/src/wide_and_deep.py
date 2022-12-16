@@ -24,6 +24,7 @@ from mindspore.common.initializer import Uniform, initializer
 from mindspore.context import ParallelMode
 from mindspore.nn.wrap.grad_reducer import DistributedGradReducer
 from mindspore.communication.management import get_group_size
+from mindspore_rec import HashEmbeddingLookup
 
 np_type = np.float32
 ms_type = mstype.float32
@@ -141,6 +142,7 @@ class WideDeepModel(nn.Cell):
         if is_auto_parallel:
             self.batch_size = self.batch_size * get_group_size()
         sparse = config.sparse
+        dynamic_embedding = config.dynamic_embedding
         self.field_size = config.field_size
         self.emb_dim = config.emb_dim
         self.weight_init, self.bias_init = config.weight_bias_init
@@ -175,29 +177,48 @@ class WideDeepModel(nn.Cell):
             target = 'DEVICE' if cache_enable else 'CPU'
             if not cache_enable:
                 sparse = True
-            if is_auto_parallel and config.full_batch and cache_enable:
-                self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim, target=target,
-                                                               slice_mode=nn.EmbeddingLookup.TABLE_ROW_SLICE,
-                                                               sparse=sparse, vocab_cache_size=config.vocab_cache_size)
-                self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1, target=target,
-                                                               slice_mode=nn.EmbeddingLookup.TABLE_ROW_SLICE,
-                                                               sparse=sparse, vocab_cache_size=config.vocab_cache_size)
+
+            if dynamic_embedding:
+                # Dynamic embedding mode with hash embedding table and enable embedding cache.
+                self.deep_embeddinglookup = HashEmbeddingLookup(embedding_size=self.emb_dim,
+                                                                vocab_cache_size=config.vocab_cache_size)
+                self.wide_embeddinglookup = HashEmbeddingLookup(embedding_size=1,
+                                                                vocab_cache_size=config.vocab_cache_size)
             else:
-                self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim, target=target,
-                                                               sparse=sparse, vocab_cache_size=config.vocab_cache_size)
-                self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1, target=target, sparse=sparse,
-                                                               vocab_cache_size=config.vocab_cache_size)
+                # Fixed embedding mode with tensor embedding table and enbale embedding cache.
+                if is_auto_parallel and config.full_batch and cache_enable:
+                    # Multi worker.
+                    self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim, target=target,
+                                                                   slice_mode=nn.EmbeddingLookup.TABLE_ROW_SLICE,
+                                                                   sparse=sparse, vocab_cache_size=config.vocab_cache_size)
+                    self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1, target=target,
+                                                                   slice_mode=nn.EmbeddingLookup.TABLE_ROW_SLICE,
+                                                                   sparse=sparse, vocab_cache_size=config.vocab_cache_size)
+                else:
+                    # Single worker.
+                    self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim, target=target,
+                                                                   sparse=sparse, vocab_cache_size=config.vocab_cache_size)
+                    self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1, target=target, sparse=sparse,
+                                                                   vocab_cache_size=config.vocab_cache_size)
+
             self.embedding_table = self.deep_embeddinglookup.embedding_table
             self.deep_embeddinglookup.embedding_table.set_param_ps()
             self.wide_embeddinglookup.embedding_table.set_param_ps()
         else:
-            self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim,
-                                                           target='DEVICE', sparse=sparse,
-                                                           vocab_cache_size=config.vocab_cache_size)
-            self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1,
-                                                           target='DEVICE', sparse=sparse,
-                                                           vocab_cache_size=config.vocab_cache_size)
+            if dynamic_embedding:
+                # Dynamic embedding mode with hash embedding table.
+                self.deep_embeddinglookup = HashEmbeddingLookup(embedding_size=self.emb_dim)
+                self.wide_embeddinglookup = HashEmbeddingLookup(embedding_size=1)
+            else:
+                # Fixed embedding mode with tensor embedding table.
+                self.deep_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, self.emb_dim,
+                                                            target='DEVICE', sparse=sparse,
+                                                            vocab_cache_size=config.vocab_cache_size)
+                self.wide_embeddinglookup = nn.EmbeddingLookup(config.vocab_size, 1,
+                                                            target='DEVICE', sparse=sparse,
+                                                            vocab_cache_size=config.vocab_cache_size)
             self.embedding_table = self.deep_embeddinglookup.embedding_table
+
     def construct(self, id_hldr, wt_hldr):
         """
         Args:
@@ -290,7 +311,7 @@ class TrainStepWrap(nn.Cell):
     """
 
     def __init__(self, network, sens=1024.0, parameter_server=False,
-                 sparse=False, cache_enable=False):
+                 sparse=False, cache_enable=False, dynamic_embedding=False):
         super(TrainStepWrap, self).__init__()
         parallel_mode = context.get_auto_parallel_context("parallel_mode")
         is_auto_parallel = parallel_mode in (ParallelMode.SEMI_AUTO_PARALLEL, ParallelMode.AUTO_PARALLEL)
@@ -307,7 +328,7 @@ class TrainStepWrap(nn.Cell):
         self.weights_w = ParameterTuple(weights_w)
         self.weights_d = ParameterTuple(weights_d)
 
-        if (sparse and is_auto_parallel) or (sparse and parameter_server):
+        if (sparse and is_auto_parallel) or (sparse and parameter_server) or dynamic_embedding:
             self.optimizer_d = LazyAdam(
                 self.weights_d, learning_rate=3.5e-4, eps=1e-8, loss_scale=sens)
             self.optimizer_w = FTRL(learning_rate=5e-2, params=self.weights_w,

@@ -38,7 +38,8 @@ def get_wide_deep_net(config):
     wide_deep_net = WideDeepModel(config)
     loss_net = NetWithLossClass(wide_deep_net, config)
     train_net = TrainStepWrap(loss_net, parameter_server=bool(config.parameter_server),
-                              sparse=config.sparse, cache_enable=(config.vocab_cache_size > 0))
+                              sparse=config.sparse, cache_enable=(config.vocab_cache_size > 0),
+                              dynamic_embedding=config.dynamic_embedding)
     eval_net = PredictWithSigmoid(wide_deep_net)
     return train_net, eval_net
 

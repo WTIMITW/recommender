@@ -43,7 +43,8 @@ def get_wide_deep_net(config):
     if cache_enable:
         loss_net = VirtualDatasetCellTriple(loss_net)
     train_net = TrainStepWrap(loss_net, parameter_server=bool(config.parameter_server),
-                              sparse=config.sparse, cache_enable=(config.vocab_cache_size > 0))
+                              sparse=config.sparse, cache_enable=(config.vocab_cache_size > 0),
+                              dynamic_embedding=config.dynamic_embedding)
     eval_net = PredictWithSigmoid(wide_deep_net)
     if cache_enable:
         eval_net = VirtualDatasetCellTriple(eval_net)

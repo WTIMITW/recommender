@@ -21,15 +21,15 @@ from src.datasets import create_dataset, DataType
 from src.model_utils.config import config
 
 
-def get_WideDeep_net(configure):
+def get_wide_deep_net(configure):
     """
     Get network of wide&deep model.
     """
-    WideDeep_net = WideDeepModel(configure)
+    wide_deep_net = WideDeepModel(configure)
 
-    loss_net = NetWithLossClass(WideDeep_net, configure)
-    train_net = TrainStepWrap(loss_net)
-    eval_net = PredictWithSigmoid(WideDeep_net)
+    loss_net = NetWithLossClass(wide_deep_net, configure)
+    train_net = TrainStepWrap(loss_net, dynamic_embedding=config.dynamic_embedding)
+    eval_net = PredictWithSigmoid(wide_deep_net)
 
     return train_net, eval_net
 
@@ -53,7 +53,7 @@ class ModelBuilder():
         return hooks
 
     def get_net(self, configure):
-        return get_WideDeep_net(configure)
+        return get_wide_deep_net(configure)
 
 
 def test_train(configure):
