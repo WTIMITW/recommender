@@ -26,6 +26,8 @@ from mindspore.common.initializer import initializer
 from mindspore.communication.management import get_group_size, get_rank
 from mindspore.context import ParallelMode
 from mindspore.parallel._utils import _get_parallel_mode, _get_full_batch
+from mindspore.parallel._ps_context import _insert_hash_table_size, _set_cache_enable, \
+                                           _set_cache_size, _set_sparse_format
 from mindspore._checkparam import Rel
 from mindspore._checkparam import Validator as validator
 from mindspore.ops.primitive import constexpr
@@ -85,6 +87,7 @@ class HashEmbeddingLookup(Cell):
         """Initialize HashEmbeddingLookup."""
         super(HashEmbeddingLookup, self).__init__()
         validator.check_value_type('sparse', sparse, [bool], self.cls_name)
+        vocab_cache_size = validator.check_non_negative_int(vocab_cache_size, 'vocab_cache_size')
 
         self.forward_unique = sparse
         self.embedding_size = validator.check_positive_int(embedding_size, 'embedding_size', self.cls_name)
@@ -92,6 +95,17 @@ class HashEmbeddingLookup(Cell):
                                             default_value=param_init, name='embedding_table',
                                             permit_filter_value=permit_filter_value,
                                             evict_filter_value=evict_filter_value)
+
+        # Embedding cache mode for dynamic hash table.
+        enable_cache = vocab_cache_size > 0
+        if enable_cache:
+            _set_cache_enable(True)
+            _set_cache_size(vocab_cache_size)
+            _set_sparse_format(True)
+            self.embedding_table.cache_enable = True
+            param_key = _get_unique_parameter_key()
+            self.embedding_table.key = param_key
+            _insert_hash_table_size(self.embedding_table.name, vocab_cache_size, embedding_size, 1, param_key)
 
         # Ops for sparse mode.
         self.gather_revert = P.Gather()
